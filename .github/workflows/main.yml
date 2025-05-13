@@ -1,0 +1,92 @@
+name: Conecta CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.13"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov black mypy flake8
+        
+    - name: Check code formatting with Black
+      run: |
+        black --check .
+        
+    - name: Lint with flake8
+      run: |
+        flake8 . --count --max-line-length=88 --statistics
+        
+    - name: Type checking with mypy
+      run: |
+        mypy .
+        
+    - name: Run tests with pytest and coverage
+      run: |
+        pytest --cov=app --cov-report=xml
+        
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: true
+
+  deploy-staging:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    # Aqui você adicionaria os passos para deploy em staging
+    # Por exemplo, deploy para Heroku, DigitalOcean, etc.
+    - name: Deploy to staging
+      run: |
+        echo "Deploy to staging would happen here"
+        # Adicionar comandos específicos do seu provedor de hosting
+
+  deploy-production:
+    needs: [test, deploy-staging]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://conecta-prod.example.com  # Substituir pela URL real
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Aqui você adicionaria os passos para deploy em produção
+    - name: Deploy to production
+      run: |
+        echo "Deploy to production would happen here"
+        # Adicionar comandos específicos do seu provedor de hosting

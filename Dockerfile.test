@@ -1,0 +1,30 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar requirements primeiro para aproveitar o cache do Docker
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar o código da aplicação
+COPY . .
+
+# Configurar variáveis de ambiente para teste
+ENV PYTHONPATH=/app
+ENV DATABASE_URL=postgresql://postgres:postgres@db:5432/conecta_test
+ENV TEST_DATABASE_URL=postgresql://postgres:postgres@db:5432/conecta_test
+ENV SMTP_HOST=localhost
+ENV SMTP_PORT=1025
+ENV SMTP_USER=test@test.com
+ENV SMTP_PASSWORD=testpass
+ENV SMTP_TLS=False
+ENV SMTP_SSL=False
+
+# Comando padrão para executar os testes
+CMD ["pytest", "app/tests/", "-v"]

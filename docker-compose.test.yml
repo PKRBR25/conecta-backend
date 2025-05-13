@@ -1,0 +1,40 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/conecta_test
+      - TEST_DATABASE_URL=postgresql://postgres:postgres@db:5432/conecta_test
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_TLS=True
+      - SMTP_SSL=False
+      - EMAILS_FROM_EMAIL=${SMTP_USER}
+      - EMAILS_FROM_NAME=Conecta Test
+      - EMAIL_TEMPLATES_DIR=app/email-templates
+      - SECRET_KEY=test-secret-key-123
+      - POSTGRES_SERVER=db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=conecta_test
+    volumes:
+      - .:/app
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=conecta_test
+    ports:
+      - "5433:5432"  # Porta diferente para não conflitar com o banco de desenvolvimento
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_test_data:
