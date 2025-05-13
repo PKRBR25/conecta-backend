@@ -1,5 +1,8 @@
 # Conecta - Procurement Team Login System
 
+[![CI/CD](https://github.com/PKRBR25/conecta-backend/actions/workflows/main.yml/badge.svg)](https://github.com/PKRBR25/conecta-backend/actions/workflows/main.yml)
+[![codecov](https://codecov.io/gh/PKRBR25/conecta-backend/branch/main/graph/badge.svg)](https://codecov.io/gh/PKRBR25/conecta-backend)
+
 A secure and bilingual SaaS platform enabling procurement teams to manage their operations efficiently.
 
 ## Features
