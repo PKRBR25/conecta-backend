@@ -52,8 +52,9 @@ class Settings(BaseSettings):
         """Get database URL."""
         if self.DATABASE_URL:
             return self.DATABASE_URL
-        
+
         from urllib.parse import quote_plus
+
         password = quote_plus(self.POSTGRES_PASSWORD)
         return f"postgresql://{self.POSTGRES_USER}:{password}@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
 

@@ -25,36 +25,39 @@ async def send_email(
     try:
         logger.debug(f"Creating email message with subject: {subject_template}")
         logger.debug(f"Environment: {environment}")
-        
+
         # Render templates
         logger.debug("Rendering subject template")
         subject = Template(subject_template).render(**environment)
         logger.debug(f"Subject after rendering: {subject}")
-        
+
         logger.debug("Rendering HTML template")
         logger.debug(f"HTML template content: {html_template}")
         html_content = Template(html_template).render(**environment)
         logger.debug(f"HTML content after rendering: {html_content}")
-        
+
         # Create message
         message = MIMEMultipart()
         message["From"] = f"{settings.EMAILS_FROM_NAME} <{settings.EMAILS_FROM_EMAIL}>"
         message["To"] = email_to
         message["Subject"] = subject
-        
+
         logger.debug(f"From: {message['From']}")
         logger.debug(f"To: {message['To']}")
         logger.debug(f"Subject: {message['Subject']}")
-        
+
         # Add HTML content
         message.attach(MIMEText(html_content, "html"))
-        
+
         logger.debug("Setting up SMTP connection")
-        logger.debug(f"SMTP settings: host={settings.SMTP_HOST}, port={settings.SMTP_PORT}, tls={settings.SMTP_TLS}, user={settings.SMTP_USER}")
-        
+        logger.debug(
+            f"SMTP settings: host={settings.SMTP_HOST}, port={settings.SMTP_PORT}, tls={settings.SMTP_TLS}, user={settings.SMTP_USER}"
+        )
+
         # Usar SSL
         try:
             import ssl
+
             logger.debug("Creating SMTP connection...")
             context = ssl.create_default_context()
             context.check_hostname = False
@@ -83,7 +86,7 @@ async def send_email(
             except Exception as quit_error:
                 logger.error(f"Error during SMTP quit: {str(quit_error)}")
                 # Don't raise this error as the email might have been sent successfully
-        
+
         logger.info(f"Email sent successfully to {email_to}")
     except Exception as e:
         logger.error(f"Error sending email to {email_to}: {str(e)}")

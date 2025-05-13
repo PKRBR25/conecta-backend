@@ -47,7 +47,7 @@ def get_message(language: str, key: str, *path: str) -> str:
     # Default to English if language not supported
     if language not in messages:
         language = "en"
-    
+
     # Navigate through the message dictionary
     current = messages[language]
     for p in path:
@@ -58,6 +58,6 @@ def get_message(language: str, key: str, *path: str) -> str:
                 current = current.get(p2, {})
         else:
             current = current[p]
-    
+
     # If key not found, return key itself
     return current.get(key, key)

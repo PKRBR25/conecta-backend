@@ -10,15 +10,12 @@ router = APIRouter()
 
 
 @router.post("/test-email/{email}")
-async def test_email(
-    email: EmailStr,
-) -> Any:
+async def test_email(email: EmailStr,) -> Any:
     """Test email."""
     try:
         await send_test_email(email_to=email)
         return {"msg": "Test email sent"}
     except Exception as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"Error sending test email: {str(e)}"
+            status_code=500, detail=f"Error sending test email: {str(e)}"
         )

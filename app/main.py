@@ -20,8 +20,7 @@ SQLModel.metadata.create_all(engine)
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
-    title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    title=settings.PROJECT_NAME, openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
 app.state.limiter = limiter
 
@@ -33,14 +32,16 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 # Add exception handlers
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
     # Get language from header or use default
     language = request.headers.get("accept-language", settings.DEFAULT_LANGUAGE)
     request.state.language = language.lower()
-    
+
     response = await call_next(request)
     return response
+
 
 # Set CORS middleware
 if settings.BACKEND_CORS_ORIGINS:

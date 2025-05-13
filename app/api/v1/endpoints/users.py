@@ -17,8 +17,7 @@ limiter = Limiter(key_func=get_remote_address)
 @router.get("/me", response_model=UserResponse)
 @limiter.limit("5/minute")
 def read_user_me(
-    request: Request,
-    current_user: Annotated[User, Depends(deps.get_current_user)]
+    request: Request, current_user: Annotated[User, Depends(deps.get_current_user)]
 ) -> Any:
     """Get current user."""
     if not current_user.is_active:
