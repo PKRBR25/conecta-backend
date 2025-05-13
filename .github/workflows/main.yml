@@ -28,7 +28,7 @@ jobs:
         
     - name: Check code formatting with Black
       run: |
-        black --check --config pyproject.toml .
+        black --check .
         
     - name: Lint with flake8
       run: |
