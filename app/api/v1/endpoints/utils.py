@@ -1,4 +1,5 @@
 """Utils endpoints."""
+
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Body
@@ -10,7 +11,9 @@ router = APIRouter()
 
 
 @router.post("/test-email/{email}")
-async def test_email(email: EmailStr,) -> Any:
+async def test_email(
+    email: EmailStr,
+) -> Any:
     """Test email."""
     try:
         await send_test_email(email_to=email)

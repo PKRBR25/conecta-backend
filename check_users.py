@@ -1,4 +1,5 @@
 """Script to check users in database."""
+
 from sqlmodel import Session, select
 
 from app.db.models.user import User

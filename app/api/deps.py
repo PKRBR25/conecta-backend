@@ -1,4 +1,5 @@
 """Dependencies module."""
+
 from typing import Generator, Annotated
 
 from fastapi import Depends, HTTPException, status

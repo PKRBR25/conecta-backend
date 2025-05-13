@@ -1,4 +1,5 @@
 """Test email functionality."""
+
 import pytest
 from unittest.mock import patch, AsyncMock
 from email.mime.multipart import MIMEMultipart
@@ -23,7 +24,8 @@ async def test_send_reset_password_email(mocker):
 
     with patch("aiosmtplib.SMTP", return_value=mock_smtp):
         await send_reset_password_email(
-            email_to="test@example.com", token="123456",
+            email_to="test@example.com",
+            token="123456",
         )
 
         # Check if send_message was called
@@ -68,7 +70,8 @@ async def test_send_reset_password_email_failure(mocker):
     with patch("aiosmtplib.SMTP", return_value=mock_smtp):
         with pytest.raises(Exception) as exc_info:
             await send_reset_password_email(
-                email_to="test@example.com", token="123456",
+                email_to="test@example.com",
+                token="123456",
             )
 
         assert "SMTP error" in str(exc_info.value)

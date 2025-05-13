@@ -1,4 +1,5 @@
 """Database session module."""
+
 import logging
 from sqlmodel import Session, create_engine
 

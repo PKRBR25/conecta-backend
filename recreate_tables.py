@@ -1,4 +1,5 @@
 """Recreate database tables."""
+
 from sqlmodel import SQLModel
 from app.db.session import engine
 from app.db.models.user import User, PasswordResetToken

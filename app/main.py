@@ -1,4 +1,5 @@
 """Main application module."""
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -20,7 +21,8 @@ SQLModel.metadata.create_all(engine)
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
-    title=settings.PROJECT_NAME, openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
 app.state.limiter = limiter
 

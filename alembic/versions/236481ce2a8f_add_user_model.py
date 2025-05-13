@@ -1,10 +1,11 @@
 """Add user model
 
 Revision ID: 236481ce2a8f
-Revises: 
+Revises:
 Create Date: 2025-05-11 17:39:07.988373
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -43,7 +44,10 @@ def upgrade() -> None:
         sa.Column("expires_at", sa.DateTime(), nullable=False),
         sa.Column("used", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(["user_id"], ["user.id"],),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["user.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(

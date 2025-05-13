@@ -1,4 +1,5 @@
 """SQLAlchemy models module."""
+
 from sqlmodel import SQLModel
 
 from app.db.models.user import User, PasswordResetToken  # noqa: F401

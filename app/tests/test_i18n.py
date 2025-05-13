@@ -1,4 +1,5 @@
 """Test internationalization."""
+
 import pytest
 from unittest.mock import MagicMock, patch
 from fastapi import status

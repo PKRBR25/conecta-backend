@@ -1,4 +1,5 @@
 """User endpoints."""
+
 from typing import Any, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request

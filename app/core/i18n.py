@@ -1,4 +1,5 @@
 """Internationalization module."""
+
 from typing import Dict, Any
 
 # English messages

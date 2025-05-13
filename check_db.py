@@ -1,4 +1,5 @@
 """Check database tables."""
+
 from sqlmodel import Session, inspect
 from app.db.session import engine
 

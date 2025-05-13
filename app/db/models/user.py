@@ -1,4 +1,5 @@
 """User model module."""
+
 from datetime import datetime
 from typing import Optional
 from sqlmodel import Field, SQLModel
