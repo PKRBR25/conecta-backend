@@ -27,9 +27,7 @@ def event_loop() -> Generator:
 def test_db_engine():
     """Create a test database engine."""
     engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool,
     )
     SQLModel.metadata.create_all(engine)
     return engine

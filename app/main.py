@@ -18,13 +18,15 @@ from app.db.session import engine
 # Create database tables
 SQLModel.metadata.create_all(engine)
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+from app.core.limiter import limiter
+
 app = FastAPI(
-    title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    title=settings.PROJECT_NAME, openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
+
+# Configure rate limiter
 app.state.limiter = limiter
+app.state.limiter_enabled = True
 
 # Add middlewares
 app.add_middleware(SlowAPIMiddleware)
@@ -32,7 +34,20 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 
 # Add exception handlers
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429, content={"detail": f"Rate limit exceeded: {exc.detail}"}
+    )
+
+
+# Add exception handlers
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"error": str(exc), "detail": f"Rate limit exceeded: {exc.detail}"},
+    )
 
 
 @app.middleware("http")

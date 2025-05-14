@@ -9,9 +9,7 @@ from typing import Any, Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-
+from app.core.limiter import limiter
 from app import schemas
 from app.api import deps
 from app.core import security
@@ -28,15 +26,12 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def register(
-    request: Request,
-    db: Annotated[Session, Depends(deps.get_db)],
-    user_in: UserCreate,
+    request: Request, db: Annotated[Session, Depends(deps.get_db)], user_in: UserCreate,
 ) -> Any:
     """Register a new user."""
     try:
@@ -124,9 +119,7 @@ async def login_access_token(
 @router.post("/password-recovery/{email}", status_code=status.HTTP_200_OK)
 @limiter.limit("3/minute")
 async def recover_password(
-    request: Request,
-    email: str,
-    db: Annotated[Session, Depends(deps.get_db)],
+    request: Request, email: str, db: Annotated[Session, Depends(deps.get_db)],
 ) -> Any:
     """Password Recovery."""
     try:
@@ -148,9 +141,7 @@ async def recover_password(
         logger.debug("Creating reset token")
         # Save token to database
         reset_token = PasswordResetToken(
-            user_id=user.id,
-            token=reset_code,
-            expires_at=token_expires,
+            user_id=user.id, token=reset_code, expires_at=token_expires,
         )
         db.add(reset_token)
         db.commit()
@@ -159,8 +150,7 @@ async def recover_password(
         logger.debug("Sending email")
         try:
             await send_reset_password_email(
-                email_to=email,
-                token=reset_code,
+                email_to=email, token=reset_code,
             )
             logger.debug("Email sent successfully")
         except Exception as email_error:

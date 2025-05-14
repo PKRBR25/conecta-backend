@@ -44,10 +44,7 @@ def upgrade() -> None:
         sa.Column("expires_at", sa.DateTime(), nullable=False),
         sa.Column("used", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["user_id"],
-            ["user.id"],
-        ),
+        sa.ForeignKeyConstraint(["user_id"], ["user.id"],),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
