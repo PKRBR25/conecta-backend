@@ -8,6 +8,13 @@ from app.core.config.production import ProductionConfig
 
 
 def get_config() -> BaseConfig:
+    """Get the appropriate configuration based on the environment."""
+    env = os.getenv("ENVIRONMENT", "development")
+    if env == "production":
+        return ProductionConfig()
+    elif env == "staging":
+        return StagingConfig()
+    return DevelopmentConfig()
     """Get the configuration based on the environment."""
     env = os.getenv("ENVIRONMENT", "staging")
     if env == "production":

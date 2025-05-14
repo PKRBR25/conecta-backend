@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # Banco de Desenvolvimento
+  postgres-dev:
+    image: postgres:15
+    container_name: conecta-dev-db
+    environment:
+      POSTGRES_USER: conecta_dev
+      POSTGRES_PASSWORD: conecta_dev
+      POSTGRES_DB: conecta_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    networks:
+      - conecta-network
+
+  # Banco de Staging
+  postgres-staging:
+    image: postgres:15
+    container_name: conecta-staging-db
+    environment:
+      POSTGRES_USER: conecta_staging
+      POSTGRES_PASSWORD: conecta_staging
+      POSTGRES_DB: conecta_staging
+    ports:
+      - "5433:5432"  # Note que usamos uma porta diferente para evitar conflito
+    volumes:
+      - postgres-staging-data:/var/lib/postgresql/data
+    networks:
+      - conecta-network
+
+volumes:
+  postgres-dev-data:
+  postgres-staging-data:
+
+networks:
+  conecta-network:
+    name: conecta-network

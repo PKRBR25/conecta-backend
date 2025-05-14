@@ -12,6 +12,24 @@ class StagingConfig(BaseConfig):
     PROJECT_NAME: str = "Conecta API (Staging)"
     DEBUG: bool = True
 
+    # Database - Local PostgreSQL
+    DATABASE_URL: str = "postgresql://conecta_staging:conecta_staging@localhost:5433/conecta_staging"
+
+    # Email settings for staging (can use a service like Mailtrap)
+    SMTP_TLS: bool = True
+    SMTP_PORT: int = 587
+    SMTP_HOST: str = "smtp.mailtrap.io"  # You can replace with your preferred email testing service
+    SMTP_USER: str = ""  # Add your test SMTP credentials
+    SMTP_PASSWORD: str = ""  # Add your test SMTP credentials
+    EMAILS_FROM_EMAIL: str = "test@conecta.staging"
+    EMAILS_FROM_NAME: str = "Conecta (Staging)"
+    """Staging configuration."""
+
+    model_config = ConfigDict(extra="allow")
+
+    PROJECT_NAME: str = "Conecta API (Staging)"
+    DEBUG: bool = True
+
     # Database
     DATABASE_URL: str = "postgresql://conecta_bhcn_user:1Ec9UPdFBrbuQF0Gw8KRdBmM8jcuRaIU@dpg-d0idhlu3jp1c73d1tb90-a.virginia-postgres.render.com/conecta_bhcn"
 
