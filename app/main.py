@@ -21,7 +21,9 @@ SQLModel.metadata.create_all(engine)
 from app.core.limiter import limiter
 
 app = FastAPI(
-    title=settings.PROJECT_NAME, openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    debug=True
 )
 
 # Configure rate limiter
@@ -72,9 +74,3 @@ if settings.BACKEND_CORS_ORIGINS:
 
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
-
-
-@app.get("/health")
-async def health_check() -> JSONResponse:
-    """Health check endpoint."""
-    return JSONResponse(content={"status": "healthy"})

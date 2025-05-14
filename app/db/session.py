@@ -8,8 +8,8 @@ from app.core.config import settings
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-logger.debug(f"Database URL: {settings.database_url}")
-engine = create_engine(settings.database_url, pool_pre_ping=True, echo=True)
+logger.debug(f"Database URL: {settings.DATABASE_URL}")
+engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True, echo=True)
 
 
 def get_session():

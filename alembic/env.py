@@ -7,7 +7,9 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from app.core.config import settings
+from app.core.config import get_config
+
+settings = get_config()
 from app.db.base import SQLModel
 
 # this is the Alembic Config object, which provides
@@ -37,6 +39,7 @@ def run_migrations_offline() -> None:
     here as well.  By skipping the Engine creation
     we don't even need a DBAPI to be available.
     """
+    # Use DATABASE_URL from environment or fallback to settings
     url = settings.database_url
     context.configure(
         url=url,
@@ -56,7 +59,7 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
     """
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = settings.database_url
+    configuration["sqlalchemy.url"] = config.get_main_option("sqlalchemy.url")
     connectable = engine_from_config(
         configuration, prefix="sqlalchemy.", poolclass=pool.NullPool,
     )

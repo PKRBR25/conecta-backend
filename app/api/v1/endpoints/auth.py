@@ -35,6 +35,8 @@ async def register(
 ) -> Any:
     """Register a new user."""
     try:
+        logger.debug("Request received for registration")
+        logger.debug(f"User input: {user_in.dict()}")
         logger.debug(f"Attempting to register user with email: {user_in.email}")
 
         # Check if user already exists
