@@ -9,9 +9,9 @@ include = '\.pyi?$'
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q"
+addopts = "-ra -q --cov=app --cov-report=xml"
 testpaths = [
-    "tests",
+    "app/tests",
 ]
 
 [tool.mypy]
