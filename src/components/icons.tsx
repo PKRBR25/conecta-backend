@@ -1,0 +1,64 @@
+import { type LucideProps } from "lucide-react"
+
+export function Google(props: LucideProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M21.8 10.74c-.3-1.1-1-2-1.9-2.7-1-.8-2.2-1.2-3.5-1.2-1.4 0-2.7.5-3.7 1.4-1 1-1.5 2.3-1.5 3.6 0 1.4.5 2.6 1.5 3.6 1 1 2.3 1.5 3.7 1.5 1.3 0 2.5-.4 3.4-1.2.3-.3.6-.6.8-1 .2-.4.4-.8.5-1.2H12v-3h9.5c.1.5.1 1 .1 1.5 0 2.5-.9 4.7-2.4 6.3-1.5 1.6-3.5 2.5-5.7 2.5-1.7 0-3.2-.5-4.6-1.4-1.4-.9-2.4-2.2-3-3.7-.6-1.5-.8-3.2-.5-4.8.3-1.6 1.1-3.1 2.2-4.2 1.1-1.1 2.5-1.9 4.1-2.3 1.6-.4 3.3-.2 4.8.5 1.5.7 2.7 1.8 3.6 3.1l-2.1 2.1z" />
+    </svg>
+  )
+}
+
+export function Github(props: LucideProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.9 3.9 0 0 0-1.2-2.8c3.5-.4 7.2-1.7 7.2-7.7a6 6 0 0 0-1.7-4.2 5.6 5.6 0 0 0-.1-4.2s-1.4-.4-4.7 1.6a16.3 16.3 0 0 0-8.7 0C6.5.9 5.1 1.3 5.1 1.3a5.6 5.6 0 0 0-.1 4.2 6 6 0 0 0-1.7 4.2c0 6 3.7 7.3 7.2 7.7a3.9 3.9 0 0 0-1.1 2.7v4.2" />
+    </svg>
+  )
+}
+
+export function Loader2(props: LucideProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M21 12a9 9 0 1 1-6.2-8.6" />
+    </svg>
+  )
+}
+
+export const Icons = {
+  google: Google,
+  github: Github,
+  spinner: Loader2,
+}
