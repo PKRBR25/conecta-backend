@@ -1,11 +1,12 @@
-import NextAuth from "next-auth"
-import { PrismaAdapter } from "@auth/prisma-adapter"
+import NextAuth, { type NextAuthOptions } from "next-auth"
+import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import { Adapter } from "next-auth/adapters"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
+import { PrismaClient } from "@prisma/client"
 
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
   session: {
     strategy: "jwt" as const,
@@ -26,38 +27,47 @@ export const authOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Please enter your email and password");
+          throw new Error("Please enter your email and password")
         }
 
+        console.log('Looking for user with email:', credentials.email)
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-        });
+        })
 
-        if (!user || !user.password) {
-          throw new Error("Invalid email or password");
+        if (!user) {
+          console.log('No user found with email:', credentials.email)
+          throw new Error('No account found with this email address')
+        }
+        
+        if (!user.password) {
+          console.log('User exists but has no password set:', user.email)
+          throw new Error('Account exists but has no password set. Please try a different sign-in method.')
         }
 
+        console.log('User found, comparing passwords...')
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
           user.password
-        );
+        )
 
         if (!isPasswordValid) {
-          throw new Error("Invalid email or password");
+          console.log('Invalid password for user:', user.email)
+          throw new Error("Invalid email or password")
         }
 
-
+        console.log('Authentication successful for user:', user.email)
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-          image: user.image,
-        };
+          image: user.image || null,
+        }
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account }: { token: any; user?: any; account?: any }) {
+    async jwt({ token, user, account }) {
       // Initial sign in
       if (account && user) {
         return {
@@ -66,41 +76,46 @@ export const authOptions = {
           name: user.name,
           email: user.email,
           picture: user.image,
-        };
+        }
       }
-      return token;
+      return token
     },
-    async session({ session, token }: { session: any; token: any }) {
+    async session({ session, token }) {
       if (session?.user) {
-        session.user.id = token.id as string;
-        session.user.name = token.name as string;
-        session.user.email = token.email as string;
-        session.user.image = token.picture as string;
+        session.user.id = token.id as string
+        session.user.name = token.name as string
+        session.user.email = token.email as string
+        session.user.image = token.picture as string
       }
-      return session;
+      return session
     },
-    async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
+    async redirect({ url, baseUrl }) {
+      // Handle relative URLs
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`
+      }
+      // Handle absolute URLs
+      if (new URL(url).origin === baseUrl) {
+        return url
+      }
+      // Fallback to dashboard
+      return `${baseUrl}/dashboard`
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || 'your-secret-key-for-development',
   debug: process.env.NODE_ENV === "development",
   useSecureCookies: process.env.NODE_ENV === "production",
   cookies: {
     sessionToken: {
-      name: `__Secure-next-auth.session-token`,
+      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
       options: {
         httpOnly: true,
-        sameSite: 'lax' as const,  // Explicitly type as 'lax' literal
+        sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === "production",
       },
     },
-  },
+  }
 }
 
 const handler = NextAuth(authOptions)

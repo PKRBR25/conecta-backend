@@ -9,6 +9,7 @@ import {
   ToastTitle,
   ToastViewport,
 } from "./toast"
+import { useToast } from "@/components/ui/use-toast"
 
 type Toast = {
   id: string
@@ -20,10 +21,11 @@ type Toast = {
 
 type ToastProviderProps = {
   children: React.ReactNode
-  toasts?: Toast[]
 }
 
-export function ToastProvider({ children, toasts = [] }: ToastProviderProps) {
+export function ToastProvider({ children }: ToastProviderProps) {
+  const { toasts } = useToast()
+  
   return (
     <ToastProviderPrimitive>
       {children}

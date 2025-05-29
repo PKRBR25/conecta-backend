@@ -7,6 +7,7 @@ const publicPaths = [
   "/register",
   "/forgot-password",
   "/api/auth",
+  "/api/test",  // Add test endpoint to public paths
   "/_next",
 ];
 
@@ -54,11 +55,16 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  // Redirect to login if not authenticated
-  if (!token) {
+  // If no token and trying to access protected route, redirect to login
+  if (!token && !publicPaths.some(path => pathname.startsWith(path))) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // If token exists and user tries to access login/register, redirect to dashboard
+  if (token && (pathname === '/login' || pathname === '/register')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return NextResponse.next();

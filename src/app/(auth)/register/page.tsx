@@ -1,18 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+
+// Import UI components
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Github, Google } from '@/components/icons';
 import { useToast } from '@/components/ui/use-toast';
 
+// Define the form schema
 const formSchema = z.object({
   name: z.string().min(2, {
     message: 'Name must be at least 2 characters.',
@@ -29,62 +32,150 @@ const formSchema = z.object({
   path: ["confirmPassword"],
 });
 
-type FormData = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof formSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const [isLoading, setIsLoading] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const emailCheckTimeout = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
-  } = useForm<FormData>({
+    trigger: triggerValidation,
+  } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    mode: 'onChange',
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
+    },
   });
 
-  const onSubmit = async (data: FormData) => {
-    setIsLoading(true);
+  // Watch form values for validation
+  const email = watch('email');
+  const password = watch('password');
+  const confirmPassword = watch('confirmPassword');
+  
+  // Check if passwords match
+  const passwordsMatch = password === confirmPassword;
+
+  // Debounced email availability check
+  useEffect(() => {
+    const checkEmail = async () => {
+      if (!email || errors.email) {
+        setEmailStatus('idle');
+        return;
+      }
+
+      setEmailStatus('checking');
+      
+      try {
+        const isAvailable = await checkEmailAvailability(email);
+        setEmailStatus(isAvailable ? 'available' : 'taken');
+      } catch (error) {
+        setEmailStatus('idle');
+        console.error('Error checking email availability:', error);
+      }
+    };
+
+    // Clear any previous timeout
+    if (emailCheckTimeout.current) {
+      clearTimeout(emailCheckTimeout.current);
+    }
+
+    // Set a new timeout
+    emailCheckTimeout.current = setTimeout(checkEmail, 500);
+
+    // Cleanup function to clear the timeout if the component unmounts
+    return () => {
+      if (emailCheckTimeout.current) {
+        clearTimeout(emailCheckTimeout.current);
+      }
+    };
+  }, [email, errors.email]);
+
+  const checkEmailAvailability = async (email: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/register', {
+      const response = await fetch('/api/auth/check-email', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+      return data.available;
+    } catch (error) {
+      console.error('Error checking email availability:', error);
+      return false;
+    }
+  };
+
+  const onSubmit = async (formData: FormValues) => {
+    // Validate the form before submission
+    const isFormValid = await triggerValidation([
+      'name',
+      'email',
+      'password',
+      'confirmPassword',
+    ] as const);
+    
+    if (!isFormValid) {
+      toast({
+        title: 'Form validation failed',
+        description: 'Please check your inputs and try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (emailStatus === 'taken') {
+      toast({
+        title: 'Email already in use',
+        description: 'Please use a different email address.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Create the user account
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          password: data.password,
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
         }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Something went wrong');
+        throw new Error(error.message || 'Failed to create account');
       }
 
-      // Sign in the user after successful registration
+      // Auto-login after registration
       const result = await signIn('credentials', {
         redirect: false,
-        email: data.email,
-        password: data.password,
+        email: formData.email,
+        password: formData.password,
         callbackUrl,
       });
 
-      if (result?.error) {
-        throw new Error(result.error);
-      }
-
-      toast({
-        title: 'Success',
-        description: 'Your account has been created successfully!',
-      });
-
+      // If auto-login is successful, redirect to dashboard
       if (result?.url) {
-        router.push(result.url);
+        window.location.href = result.url; // Use window.location to ensure full page reload
       }
     } catch (error) {
       toast({
@@ -104,206 +195,213 @@ export default function RegisterPage() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to sign in with ' + provider,
+        description: `Failed to sign in with ${provider}`,
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
+
   return (
-    <div className="container relative h-screen flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
-      <div className="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex">
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-red-600" />
-        <div className="relative z-20 flex items-center text-lg font-medium">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mr-2 h-6 w-6"
-          >
-            <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
-          </svg>
-          SaaS Register
-        </div>
-        <div className="relative z-20 mt-auto">
-          <blockquote className="space-y-2">
-            <p className="text-lg">
-              &ldquo;Joining our platform is the first step towards a more productive and secure work environment.&rdquo;
-            </p>
-            <footer className="text-sm">Alex Johnson, CEO at TechCorp</footer>
-          </blockquote>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
+          <p className="text-gray-600">Fill in your details to create an account</p>
         </div>
       </div>
-      <div className="lg:p-8">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-          <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Create an account
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Enter your email and password to create your account
-            </p>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-6 shadow-sm rounded-xl sm:px-10">
+          {/* Social Login Buttons */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <button
+              onClick={() => handleSocialSignIn('google')}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Google className="h-5 w-5" />
+              <span className="text-sm font-medium">Google</span>
+            </button>
+            <button
+              onClick={() => handleSocialSignIn('github')}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Github className="h-5 w-5" />
+              <span className="text-sm font-medium">GitHub</span>
+            </button>
           </div>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  placeholder="John Doe"
-                  type="text"
-                  autoCapitalize="words"
-                  autoComplete="name"
-                  autoCorrect="off"
-                  disabled={isLoading}
-                  className="w-full"
-                  {...register('name')}
-                />
-                {errors.name && (
-                  <p className="text-sm font-medium text-destructive">
-                    {errors.name.message}
-                  </p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  placeholder="name@example.com"
-                  type="email"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  autoCorrect="off"
-                  disabled={isLoading}
-                  className="w-full"
-                  {...register('email')}
-                />
-                {errors.email && (
-                  <p className="text-sm font-medium text-destructive">
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  placeholder="••••••••"
-                  type="password"
-                  autoCapitalize="none"
-                  autoComplete="new-password"
-                  autoCorrect="off"
-                  disabled={isLoading}
-                  className="w-full"
-                  {...register('password')}
-                />
-                {errors.password && (
-                  <p className="text-sm font-medium text-destructive">
-                    {errors.password.message}
-                  </p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  placeholder="••••••••"
-                  type="password"
-                  autoCapitalize="none"
-                  autoComplete="new-password"
-                  autoCorrect="off"
-                  disabled={isLoading}
-                  className="w-full"
-                  {...register('confirmPassword')}
-                />
-                {errors.confirmPassword && (
-                  <p className="text-sm font-medium text-destructive">
-                    {errors.confirmPassword.message}
-                  </p>
-                )}
-              </div>
-              <Button 
-                type="submit" 
-                disabled={isLoading} 
-                className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="mr-2 h-4 w-4 animate-spin border-2 border-white border-t-transparent rounded-full" />
-                    Creating Account...
-                  </>
-                ) : 'Create Account'}
-              </Button>
-            </div>
-          </form>
           
-          <div className="relative">
+          <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
+              <div className="w-full border-t border-gray-200"></div>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or sign up with
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500 text-sm">
+                Or continue with email
               </span>
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            <Button 
-              variant="outline" 
-              type="button" 
-              disabled={isLoading}
-              onClick={() => handleSocialSignIn('google')}
-              className="w-full"
-            >
-              <Google className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              type="button" 
-              disabled={isLoading}
-              onClick={() => handleSocialSignIn('github')}
-              className="w-full"
-            >
-              <Github className="h-4 w-4" />
-            </Button>
-          </div>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Name Field */}
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Full Name
+              </label>
+              <div className="relative">
+                <input
+                  id="name"
+                  type="text"
+                  autoComplete="name"
+                  disabled={isLoading}
+                  className={`w-full px-4 py-3 text-sm border ${
+                    errors.name ? 'border-red-300' : 'border-gray-200'
+                  } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                  placeholder="Enter your full name"
+                  {...register('name')}
+                />
+              </div>
+              {errors.name && (
+                <p className="mt-1.5 text-xs text-red-600">{errors.name.message}</p>
+              )}
+            </div>
+
+            {/* Email Field */}
+            <div>
+              <div className="flex justify-between mb-1">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email
+                </label>
+                {emailStatus === 'checking' && (
+                  <span className="text-xs text-amber-600 flex items-center">
+                    <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Checking...
+                  </span>
+                )}
+                {emailStatus === 'available' && (
+                  <span className="text-xs text-green-600 flex items-center">
+                    <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Email available
+                  </span>
+                )}
+                {emailStatus === 'taken' && (
+                  <span className="text-xs text-red-600 flex items-center">
+                    <svg className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Email already in use
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  disabled={isLoading}
+                  className={`w-full px-4 py-3 text-sm border ${
+                    errors.email || emailStatus === 'taken' ? 'border-red-300' : 'border-gray-200'
+                  } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                  placeholder="Enter your email"
+                  {...register('email')}
+                  onBlur={() => triggerValidation('email')}
+                />
+              </div>
+              {errors.email && (
+                <p className="mt-1.5 text-xs text-red-600">{errors.email.message}</p>
+              )}
+            </div>
+
+            {/* Password Field */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  disabled={isLoading}
+                  className={`w-full px-4 py-3 text-sm border ${
+                    errors.password ? 'border-red-300' : 'border-gray-200'
+                  } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                  placeholder="Create a password"
+                  {...register('password')}
+                />
+              </div>
+              {errors.password && (
+                <p className="mt-1.5 text-xs text-red-600">{errors.password.message}</p>
+              )}
+            </div>
+
+            {/* Confirm Password Field */}
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  disabled={isLoading}
+                  className={`w-full px-4 py-3 text-sm border ${
+                    errors.confirmPassword ? 'border-red-300' : 'border-gray-200'
+                  } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                  placeholder="Confirm your password"
+                  {...register('confirmPassword')}
+                />
+              </div>
+              {errors.confirmPassword && (
+                <p className="mt-1.5 text-xs text-red-600">{errors.confirmPassword.message}</p>
+              )}
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isLoading || !passwordsMatch || emailStatus === 'taken'}
+                className={`w-full flex justify-center items-center py-3 px-4 rounded-lg text-sm font-medium text-white ${
+                  !passwordsMatch || emailStatus === 'taken' ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                } transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+              >
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creating account...
+                  </>
+                ) : 'Create Account'}
+              </button>
+            </div>
+          </form>
           
-          <p className="px-8 text-center text-sm text-muted-foreground">
+          <div className="mt-6 text-center text-sm text-gray-600">
             Already have an account?{' '}
-            <Link
-              href="/login"
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
+            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
               Sign in
             </Link>
-            <br />
-            <span className="text-xs">
-              By clicking continue, you agree to our{' '}
-              <Link
-                href="/terms"
-                className="underline underline-offset-4 hover:text-primary"
-              >
-                Terms of Service
-              </Link>{' '}
-              and{' '}
-              <Link
-                href="/privacy"
-                className="underline underline-offset-4 hover:text-primary"
-              >
-                Privacy Policy
-              </Link>
-              .
-            </span>
-          </p>
+          </div>
+          
+          <div className="mt-8 border-t border-gray-100 pt-6">
+            <p className="text-xs text-center text-gray-500">
+              By creating an account, you agree to our{' '}
+              <a href="/terms" className="text-blue-600 hover:underline">Terms</a>
+              {' '}and{' '}
+              <a href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</a>.
+            </p>
+          </div>
         </div>
       </div>
     </div>

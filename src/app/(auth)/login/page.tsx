@@ -30,48 +30,59 @@ export default function LoginPage() {
   } = useForm<FormData>()
   
   const onSubmit = async (data: FormData) => {
-    setIsLoading(true)
+    setIsLoading(true);
+    console.log('Login attempt with:', { email: data.email });
+    
     try {
+      console.log('Calling signIn with credentials...');
       const result = await signIn("credentials", {
         redirect: false,
         email: data.email,
         password: data.password,
-        callbackUrl,
-      })
+        callbackUrl: callbackUrl || '/dashboard',
+      });
+
+      console.log('Sign in result:', result);
 
       if (result?.error) {
+        console.log('Authentication error:', result.error);
         // Handle specific error messages
-        let errorMessage = result.error;
-        if (result.error === 'CredentialsSignin') {
+        let errorMessage = 'Failed to sign in. Please try again.';
+        
+        if (result.error.includes('No account found')) {
+          errorMessage = 'No account found with this email address';
+        } else if (result.error.includes('no password set')) {
+          errorMessage = 'This account has no password set. Please try a different sign-in method.';
+        } else if (result.error.includes('CredentialsSignin') || result.error.includes('Invalid email or password')) {
           errorMessage = 'Invalid email or password';
+        } else if (result.error) {
+          errorMessage = result.error;
         }
-        throw new Error(errorMessage);
-      }
 
-      // Only show success message if we're not redirecting to a callback URL
-      if (result?.url) {
-        // If there's a callback URL, redirect to it without showing a toast
-        if (result.url !== callbackUrl) {
-          return router.push(result.url);
-        }
-        // If it's the default callback URL, show success message first
+        console.log('Showing error toast:', errorMessage);
         toast({
-          title: "Success",
-          description: "You have been successfully logged in.",
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
         });
-        return router.push(result.url);
+      } else if (result?.url) {
+        console.log('Login successful, redirecting to:', result.url);
+        // Redirect without showing a toast to avoid flash of content
+        window.location.href = result.url;
+        return;
+      } else {
+        // Default redirect if no URL is provided
+        window.location.href = '/dashboard';
       }
-      
-      // Default redirect if no URL is provided
-      router.push("/dashboard");
     } catch (error) {
+      console.error('Login error:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to log in. Please try again.",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
